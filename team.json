@@ -1,9 +1,9 @@
 {
-  "team_id": "APIB0020",
+  "team_id": "APIBP0020",
   "approach": "A",
   "members": [
-    { "name": "Prajwal Suvarna", "github_username": "prpoojary" },
-    { "name": "Team Member 2",   "github_username": "gh-handle-2" },
-    { "name": "Team Member 3",   "github_username": "gh-handle-3" }
+    { "name": "Prajwal Suvarna",  "github_username": "prpoojary" },
+    { "name": "Lathish Kumar",    "github_username": "Lathish-Kumar2" },
+    { "name": "Mahadev Prasad M", "github_username": "Mady003" }
   ]
 }

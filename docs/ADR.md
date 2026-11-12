@@ -67,7 +67,7 @@ eliminates duplication and guarantees response parity between both interfaces.
 | Pattern | REST endpoint | GraphQL field | Domain mapping |
 |---|---|---|---|
 | **List** | `GET /api/v1/events` | `Query.events` | Filter events by status/category/price; sort by price or date; cursor-paginate |
-| **Map** | `GET /api/v1/events/nearby` | `Query.eventsNearby` | Radius search (lat, lon, radius_km) and bounding-box (min_lat…max_lon) over venue coordinates |
+| **Map** | `GET /api/v1/events/map` | `Query.eventsNearby` | Radius search (lat, lon, radius_km) and bounding-box (min_lat…max_lon) over venue coordinates |
 | **Calendar** | `GET /api/v1/bookings/slots` | `Query.availableSlots` | Return time-window availability; block overlapping bookings (409 `SLOT_CONFLICT`) |
 
 ## 6. Composite Payload Comparison

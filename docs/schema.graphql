@@ -72,6 +72,33 @@ type Event {
   organizer:    Organizer!
 }
 
+# ── Map (Geospatial) types ────────────────────────────────────────────────────
+type GeoLocation {
+  type: String!
+  "GeoJSON [longitude, latitude]"
+  coordinates: GeoPoint!
+}
+
+type EventWithLocation {
+  id:           ID!
+  title:        String!
+  description:  String
+  status:       EventStatus!
+  category:     EventCategory!
+  "Ticket price in INR (0 = free)"
+  price:        Int!
+  starts_at:    DateTime!
+  ends_at:      DateTime!
+  capacity:     Int!
+  booked_count: Int!
+  venue:        Venue!
+  organizer:    Organizer!
+  "GeoJSON location of the venue"
+  location:     GeoLocation!
+  "Distance from search centre in km (radius search only)"
+  distanceKm:   Float
+}
+
 # ── GraphQL Connection spec (cursor-based pagination) ─────────────────────────
 type PageInfo {
   "true when more pages follow in the current direction"
@@ -165,6 +192,25 @@ type Query {
     "Filter to bookings whose event ends on or before this time"
     ends_at:   DateTime
   ): [Booking!]!
+
+  "Map API — events within radius_km of (latitude, longitude), sorted nearest-first"
+  eventsNearby(
+    latitude:  Float!
+    longitude: Float!
+    radius_km: Float!
+    status:    EventStatus
+    category:  EventCategory
+  ): [EventWithLocation!]!
+
+  "Map API — events within a bounding box (SW corner to NE corner)"
+  eventsInBbox(
+    min_lat:  Float!
+    min_lon:  Float!
+    max_lat:  Float!
+    max_lon:  Float!
+    status:   EventStatus
+    category: EventCategory
+  ): [EventWithLocation!]!
 }
 
 # ── Mutations ─────────────────────────────────────────────────────────────────

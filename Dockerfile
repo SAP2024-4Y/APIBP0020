@@ -18,6 +18,7 @@ RUN apk add --no-cache tini
 COPY --from=builder /app/node_modules ./node_modules
 COPY package.json ./
 COPY src/ ./src/
+COPY docs/ ./docs/
 
 RUN mkdir -p /app/data
 
