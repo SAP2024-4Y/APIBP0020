@@ -48,8 +48,9 @@ async function buildApp() {
   app.use('/api/v1/auth',     authRouter);
   app.use('/api/v1/bookings', bookingsRouter);
 
-  // ── Swagger UI (docs) — served later, requires openapi.yaml ──────────
-  // See src/routes/docs.js
+  // ── Swagger UI (docs) ────────────────────────────────────────────────────
+  const docsRouter = require('./routes/docs');
+  app.use('/docs', docsRouter);
 
   // ── Apollo / GraphQL ──────────────────────────────────────────────────
   const apollo = new ApolloServer({ typeDefs, resolvers });

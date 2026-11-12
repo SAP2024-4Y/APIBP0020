@@ -300,6 +300,76 @@ paths:
               example:
                 error: { code: RATE_LIMITED, message: Too many requests. Retry after the window resets. }
 
+  /api/v1/events/map:
+    get:
+      tags: [events]
+      summary: Map API — events by proximity or bounding box
+      operationId: getEventsMap
+      parameters:
+        - name: latitude
+          in: query
+          description: Centre point latitude (decimal degrees, -90 to 90). Required for radius search.
+          schema: { type: number, format: float, example: 12.975 }
+        - name: longitude
+          in: query
+          description: Centre point longitude (decimal degrees, -180 to 180). Required for radius search.
+          schema: { type: number, format: float, example: 77.606 }
+        - name: radius_km
+          in: query
+          description: Search radius in kilometres (positive decimal). Required for radius search.
+          schema: { type: number, format: float, example: 10.0 }
+        - name: min_lat
+          in: query
+          description: SW corner latitude for bounding-box search.
+          schema: { type: number, format: float, example: 12.85 }
+        - name: min_lon
+          in: query
+          description: SW corner longitude for bounding-box search.
+          schema: { type: number, format: float, example: 77.50 }
+        - name: max_lat
+          in: query
+          description: NE corner latitude for bounding-box search.
+          schema: { type: number, format: float, example: 13.05 }
+        - name: max_lon
+          in: query
+          description: NE corner longitude for bounding-box search.
+          schema: { type: number, format: float, example: 77.80 }
+        - $ref: '#/components/parameters/statusParam'
+        - $ref: '#/components/parameters/categoryParam'
+      responses:
+        '200':
+          description: GeoJSON FeatureCollection of matching events
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  type:  { type: string, example: FeatureCollection }
+                  count: { type: integer }
+                  items:
+                    type: array
+                    items:
+                      allOf:
+                        - $ref: '#/components/schemas/Event'
+                        - type: object
+                          properties:
+                            location:
+                              type: object
+                              properties:
+                                type:        { type: string, example: Point }
+                                coordinates: { $ref: '#/components/schemas/GeoPoint' }
+                            distance_km:
+                              type: number
+                              nullable: true
+                              description: Distance from search centre (radius search only)
+        '400':
+          description: Invalid or missing coordinate parameters
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorResponse' }
+              example:
+                error: { code: INVALID_COORDINATES, message: "latitude must be [-90, 90] and longitude must be [-180, 180]." }
+
   /api/v1/events/{id}:
     get:
       tags: [events]

@@ -3,7 +3,7 @@
 // Uses DataLoader to batch-load venue and organizer data — no N+1.
 'use strict';
 
-const { listEvents, getEventById } = require('../../models/event');
+const { listEvents, getEventById, searchEventsByRadius, searchEventsByBbox } = require('../../models/event');
 
 // ── GraphQL Connection helpers ──────────────────────────────────────────────
 
@@ -70,6 +70,29 @@ const Query = {
     const result = listEvents({ limit: 50 });
     return result.events;
   },
+
+  eventsNearby(_parent, args) {
+    const items = searchEventsByRadius({
+      latitude:  args.latitude,
+      longitude: args.longitude,
+      radius_km: args.radius_km,
+      status:    args.status,
+      category:  args.category,
+    });
+    return items.map(e => ({ ...e, distanceKm: e.distance_km }));
+  },
+
+  eventsInBbox(_parent, args) {
+    const items = searchEventsByBbox({
+      min_lat:  args.min_lat,
+      min_lon:  args.min_lon,
+      max_lat:  args.max_lat,
+      max_lon:  args.max_lon,
+      status:   args.status,
+      category: args.category,
+    });
+    return items.map(e => ({ ...e, distanceKm: e.distance_km }));
+  },
 };
 
 // ── Field resolvers ─────────────────────────────────────────────────────────
@@ -90,8 +113,14 @@ const Event = {
   },
 };
 
+const EventWithLocation = {
+  venue(parent)     { return parent.venue; },
+  organizer(parent) { return parent.organizer; },
+  location(parent)  { return parent.location; },
+};
+
 // ── EventConnection / PageInfo field resolvers ──────────────────────────────
 // Apollo Server resolves these automatically from the plain objects returned
 // by the Query.events resolver above — no extra resolver code required.
 
-module.exports = { Query, Event };
+module.exports = { Query, Event, EventWithLocation };

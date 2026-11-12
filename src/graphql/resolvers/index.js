@@ -3,7 +3,7 @@
 'use strict';
 
 const { GraphQLDateTime } = require('graphql-scalars');
-const { Query, Event }    = require('./events');
+const { Query, Event, EventWithLocation } = require('./events');
 const { BookingQuery, Mutation } = require('./bookings');
 
 module.exports = {
@@ -16,5 +16,6 @@ module.exports = {
   },
   Query: { ...Query, ...BookingQuery },
   Event,
+  EventWithLocation,
   Mutation,
 };
