@@ -7,7 +7,7 @@ Course: API Best Practices | Section: — | Instructor: —
 | # | Name              | Roll No      | GitHub ID     | Email                          |
 |---|-------------------|--------------|---------------|--------------------------------|
 | 1 | Prajwal Suvarna   | ROLLNO001    | prpoojary     | prajwal.suvarna@sap.com        |
-| 2 | Team Member 2     | ROLLNO002    | gh-handle-2   | member2@example.com            |
+| 2 | Lathish Kumar     | 2024SL70023  | Lathish-Kumar2 | lathishk910@gmail.com         |
 | 3 | Team Member 3     | ROLLNO003    | gh-handle-3   | member3@example.com            |
 
 - Team ID: `APIB0020` (must equal the repository name and `team.json.team_id`)
