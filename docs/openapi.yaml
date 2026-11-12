@@ -1,0 +1,308 @@
+openapi: 3.1.0
+info:
+  title: Events & Ticketing Platform API
+  version: 1.0.0
+  description: |
+    REST API (Approach A — REST-First + GraphQL Layer) for the Events & Ticketing
+    Platform.  All business endpoints live under `/api/v1/`.
+
+    **Demo credentials:** POST `/api/v1/auth/token` with
+    `{"username":"demo","password":"demo-password"}` to obtain a Bearer token.
+
+servers:
+  - url: http://localhost:8080
+    description: Local Docker environment
+
+tags:
+  - name: auth
+    description: Token issuance
+  - name: events
+    description: Event listing, filtering, and detail
+  - name: bookings
+    description: Ticket booking and cancellation
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Reusable components
+# ─────────────────────────────────────────────────────────────────────────────
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  parameters:
+    limitParam:
+      name: limit
+      in: query
+      description: "Page size (1–100, default 20)"
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 100
+        default: 20
+
+    afterParam:
+      name: after
+      in: query
+      description: Opaque cursor from `pagination.next_cursor` of the previous page
+      schema:
+        type: string
+
+    statusParam:
+      name: status
+      in: query
+      description: Filter by event status
+      schema:
+        $ref: '#/components/schemas/EventStatus'
+
+    categoryParam:
+      name: category
+      in: query
+      description: Filter by event category
+      schema:
+        $ref: '#/components/schemas/EventCategory'
+
+    minPriceParam:
+      name: min_price
+      in: query
+      description: Minimum ticket price in INR (inclusive)
+      schema:
+        type: integer
+        minimum: 0
+
+    maxPriceParam:
+      name: max_price
+      in: query
+      description: Maximum ticket price in INR (inclusive)
+      schema:
+        type: integer
+        minimum: 0
+
+    sortParam:
+      name: sort
+      in: query
+      description: "Sort field (default: starts_at)"
+      schema:
+        type: string
+        enum: [price, starts_at, title]
+        default: starts_at
+
+    orderParam:
+      name: order
+      in: query
+      description: "Sort direction (default: asc)"
+      schema:
+        type: string
+        enum: [asc, desc]
+        default: asc
+
+  schemas:
+    EventStatus:
+      type: string
+      enum: [UPCOMING, OPEN, SOLD_OUT, CANCELLED]
+
+    EventCategory:
+      type: string
+      enum: [TECH, MUSIC, WORKSHOP, SPORTS, COMEDY, ART]
+
+    GeoPoint:
+      type: array
+      description: "GeoJSON position — [longitude, latitude] in decimal degrees"
+      items:
+        type: number
+      minItems: 2
+      maxItems: 2
+      example: [77.6082, 12.9716]
+
+    Venue:
+      type: object
+      required: [id, name, address, city, coordinates]
+      properties:
+        id:          { type: string, example: venue-1 }
+        name:        { type: string, example: MLR Convention Centre }
+        address:     { type: string, example: "No.11, Brigade Road, Bengaluru" }
+        city:        { type: string, example: Bengaluru }
+        coordinates: { $ref: '#/components/schemas/GeoPoint' }
+
+    Organizer:
+      type: object
+      required: [id, name]
+      properties:
+        id:   { type: string, example: org-1 }
+        name: { type: string, example: Bangalore Tech Collective }
+
+    Event:
+      type: object
+      required: [id, title, status, category, price, starts_at, ends_at, capacity, booked_count, venue, organizer]
+      properties:
+        id:           { type: string, example: evt-001 }
+        title:        { type: string, example: Bengaluru DevFest 2026 }
+        description:  { type: string, nullable: true }
+        status:       { $ref: '#/components/schemas/EventStatus' }
+        category:     { $ref: '#/components/schemas/EventCategory' }
+        price:        { type: integer, description: "Ticket price in INR (0 = free)", example: 999 }
+        starts_at:    { type: string, format: date-time, example: "2026-12-05T04:30:00Z" }
+        ends_at:      { type: string, format: date-time, example: "2026-12-05T13:30:00Z" }
+        capacity:     { type: integer, example: 2000 }
+        booked_count: { type: integer, example: 340 }
+        venue:        { $ref: '#/components/schemas/Venue' }
+        organizer:    { $ref: '#/components/schemas/Organizer' }
+
+    Pagination:
+      type: object
+      required: [has_more, total_count, limit]
+      properties:
+        has_more:    { type: boolean }
+        next_cursor: { type: string, nullable: true, description: "Pass as 'after' on the next request" }
+        total_count: { type: integer }
+        limit:       { type: integer }
+
+    EventListResponse:
+      type: object
+      required: [data, pagination]
+      properties:
+        data:       { type: array, items: { $ref: '#/components/schemas/Event' } }
+        pagination: { $ref: '#/components/schemas/Pagination' }
+
+    EventDetailResponse:
+      type: object
+      required: [data]
+      properties:
+        data: { $ref: '#/components/schemas/Event' }
+
+    TokenRequest:
+      type: object
+      required: [username, password]
+      properties:
+        username: { type: string, example: demo }
+        password: { type: string, example: demo-password }
+
+    TokenResponse:
+      type: object
+      required: [token]
+      properties:
+        token: { type: string, description: JWT Bearer token }
+
+    ErrorResponse:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: object
+          required: [code, message]
+          properties:
+            code:    { type: string, example: EVENT_NOT_FOUND }
+            message: { type: string, example: "Event 'evt-999' not found" }
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Paths
+# ─────────────────────────────────────────────────────────────────────────────
+paths:
+  /health:
+    get:
+      summary: Health check
+      operationId: healthCheck
+      responses:
+        '200':
+          description: Service is healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status: { type: string, example: ok }
+
+  /api/v1/auth/token:
+    post:
+      tags: [auth]
+      summary: Issue a demo Bearer token
+      operationId: issueToken
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/TokenRequest' }
+      responses:
+        '200':
+          description: Token issued
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/TokenResponse' }
+        '401':
+          description: Invalid credentials
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorResponse' }
+              example:
+                error: { code: INVALID_CREDENTIALS, message: Username or password is incorrect }
+
+  /api/v1/events:
+    get:
+      tags: [events]
+      summary: List events (filtering, sorting, cursor pagination)
+      operationId: listEvents
+      parameters:
+        - $ref: '#/components/parameters/statusParam'
+        - $ref: '#/components/parameters/categoryParam'
+        - $ref: '#/components/parameters/minPriceParam'
+        - $ref: '#/components/parameters/maxPriceParam'
+        - $ref: '#/components/parameters/sortParam'
+        - $ref: '#/components/parameters/orderParam'
+        - $ref: '#/components/parameters/limitParam'
+        - $ref: '#/components/parameters/afterParam'
+      responses:
+        '200':
+          description: Paginated event list
+          headers:
+            RateLimit-Limit:
+              schema: { type: integer }
+            RateLimit-Remaining:
+              schema: { type: integer }
+            RateLimit-Reset:
+              schema: { type: integer }
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/EventListResponse' }
+        '400':
+          description: Invalid cursor or filter parameter
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorResponse' }
+              examples:
+                invalidCursor:
+                  value: { error: { code: INVALID_CURSOR, message: The cursor value is malformed or expired } }
+        '429':
+          description: Rate limit exceeded
+          headers:
+            Retry-After:
+              schema: { type: integer }
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorResponse' }
+              example:
+                error: { code: RATE_LIMITED, message: Too many requests. Retry after the window resets. }
+
+  /api/v1/events/{id}:
+    get:
+      tags: [events]
+      summary: Get a single event by ID
+      operationId: getEvent
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Event detail
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/EventDetailResponse' }
+        '404':
+          description: Event not found
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorResponse' }
+              example:
+                error: { code: EVENT_NOT_FOUND, message: "Event 'evt-999' not found" }
