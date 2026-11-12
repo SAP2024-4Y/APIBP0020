@@ -1,0 +1,9 @@
+{
+  "team_id": "APIB0020",
+  "approach": "A",
+  "members": [
+    { "name": "Prajwal Suvarna", "github_username": "prpoojary" },
+    { "name": "Team Member 2",   "github_username": "gh-handle-2" },
+    { "name": "Team Member 3",   "github_username": "gh-handle-3" }
+  ]
+}
