@@ -168,6 +168,22 @@ const typeDefs = gql`
     This field will be removed in schema v2.
     """
     allEvents: [Event!]! @deprecated(reason: "Use the events connection query with pagination instead. Will be removed in v2.")
+
+    "Calendar API — list OPEN/UPCOMING events overlapping the given time window"
+    availableSlots(
+      "Window start (ISO 8601 UTC, inclusive)"
+      starts_at: DateTime!
+      "Window end (ISO 8601 UTC, exclusive)"
+      ends_at:   DateTime!
+    ): [Event!]!
+
+    "Calendar API — list the authenticated user's bookings, optionally filtered by event time window"
+    bookings(
+      "Filter to bookings whose event starts on or after this time"
+      starts_at: DateTime
+      "Filter to bookings whose event ends on or before this time"
+      ends_at:   DateTime
+    ): [Booking!]!
   }
 
 

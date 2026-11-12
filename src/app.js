@@ -12,7 +12,8 @@ const resolvers         = require('./graphql/resolvers');
 
 // Route modules
 const eventsRouter      = require('./routes/v1/events');
-// (Map and Calendar routers imported here when implemented)
+const authRouter        = require('./routes/v1/auth');
+const bookingsRouter    = require('./routes/v1/bookings');
 
 // ── Rate limiter ──────────────────────────────────────────────────────────
 const rateLimit = require('express-rate-limit');
@@ -43,7 +44,9 @@ async function buildApp() {
   app.get('/health', (_req, res) => res.json({ status: 'ok' }));
 
   // ── REST API v1 ───────────────────────────────────────────────────────
-  app.use('/api/v1/events', eventsRouter);
+  app.use('/api/v1/events',   eventsRouter);
+  app.use('/api/v1/auth',     authRouter);
+  app.use('/api/v1/bookings', bookingsRouter);
 
   // ── Swagger UI (docs) — served later, requires openapi.yaml ──────────
   // See src/routes/docs.js

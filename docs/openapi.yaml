@@ -195,6 +195,23 @@ components:
             code:    { type: string, example: EVENT_NOT_FOUND }
             message: { type: string, example: "Event 'evt-999' not found" }
 
+    EventSlot:
+      allOf:
+        - $ref: '#/components/schemas/Event'
+        - type: object
+          properties:
+            available_seats: { type: integer, description: "capacity minus booked_count", example: 1660 }
+
+    Booking:
+      type: object
+      required: [id, status, userId, createdAt, event]
+      properties:
+        id:        { type: string, example: bkg-seed-001 }
+        status:    { type: string, enum: [CONFIRMED, CANCELLED] }
+        userId:    { type: string, example: user-demo }
+        createdAt: { type: string, format: date-time, example: "2026-11-01T10:00:00Z" }
+        event:     { $ref: '#/components/schemas/Event' }
+
 # ─────────────────────────────────────────────────────────────────────────────
 # Paths
 # ─────────────────────────────────────────────────────────────────────────────
@@ -306,3 +323,176 @@ paths:
               schema: { $ref: '#/components/schemas/ErrorResponse' }
               example:
                 error: { code: EVENT_NOT_FOUND, message: "Event 'evt-999' not found" }
+
+  /api/v1/bookings/slots:
+    get:
+      tags: [bookings]
+      summary: List available event slots in a time window (Calendar API)
+      operationId: getAvailableSlots
+      parameters:
+        - name: starts_at
+          in: query
+          required: true
+          description: Window start in ISO 8601 UTC
+          schema: { type: string, format: date-time, example: "2026-12-01T00:00:00Z" }
+        - name: ends_at
+          in: query
+          required: true
+          description: Window end in ISO 8601 UTC
+          schema: { type: string, format: date-time, example: "2026-12-31T23:59:59Z" }
+      responses:
+        '200':
+          description: Events with available seats overlapping the window
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:  { type: array, items: { $ref: '#/components/schemas/EventSlot' } }
+                  count: { type: integer }
+        '422':
+          description: Invalid time window
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorResponse' }
+              example:
+                error: { code: INVALID_TIME_WINDOW, message: ends_at must be after starts_at. }
+
+  /api/v1/bookings:
+    get:
+      tags: [bookings]
+      summary: List authenticated user's bookings (Calendar API)
+      operationId: listBookings
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: starts_at
+          in: query
+          description: Filter — event starts on or after this time (ISO 8601 UTC)
+          schema: { type: string, format: date-time }
+        - name: ends_at
+          in: query
+          description: Filter — event ends on or before this time (ISO 8601 UTC)
+          schema: { type: string, format: date-time }
+      responses:
+        '200':
+          description: User's bookings
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:  { type: array, items: { $ref: '#/components/schemas/Booking' } }
+                  count: { type: integer }
+        '401':
+          description: Missing or invalid token
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorResponse' }
+              example:
+                error: { code: UNAUTHORIZED, message: Missing or invalid Authorization header. }
+    post:
+      tags: [bookings]
+      summary: Create a booking (Calendar API — conflict returns 409)
+      operationId: createBooking
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [event_id]
+              properties:
+                event_id: { type: string, example: evt-002 }
+      responses:
+        '201':
+          description: Booking created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { $ref: '#/components/schemas/Booking' }
+        '401':
+          description: Missing or invalid token
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorResponse' }
+        '404':
+          description: Event not found
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorResponse' }
+              example:
+                error: { code: EVENT_NOT_FOUND, message: "Event 'evt-999' not found." }
+        '409':
+          description: Booking conflict
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorResponse' }
+              examples:
+                conflict:
+                  value: { error: { code: BOOKING_CONFLICT, message: You have already booked this event. } }
+                soldOut:
+                  value: { error: { code: EVENT_SOLD_OUT, message: This event is fully booked. } }
+                cancelled:
+                  value: { error: { code: EVENT_CANCELLED, message: This event has been cancelled. } }
+                windowClosed:
+                  value: { error: { code: BOOKING_WINDOW_CLOSED, message: Booking window has closed. } }
+        '422':
+          description: Validation error
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorResponse' }
+              example:
+                error: { code: VALIDATION_ERROR, message: event_id is required. }
+
+  /api/v1/bookings/{id}:
+    delete:
+      tags: [bookings]
+      summary: Cancel a booking (Calendar API)
+      operationId: cancelBooking
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Booking cancelled
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { $ref: '#/components/schemas/Booking' }
+        '401':
+          description: Missing or invalid token
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorResponse' }
+        '403':
+          description: Booking belongs to another user
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorResponse' }
+              example:
+                error: { code: FORBIDDEN, message: You do not have permission to cancel this booking. }
+        '404':
+          description: Booking not found
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorResponse' }
+              example:
+                error: { code: BOOKING_NOT_FOUND, message: "Booking 'bkg-xyz' not found." }
+        '409':
+          description: Booking already cancelled
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorResponse' }
+              example:
+                error: { code: BOOKING_ALREADY_CANCELLED, message: Booking is already cancelled. }
