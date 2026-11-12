@@ -255,4 +255,128 @@ function batchLoadEventsByIds(ids) {
   return ids.map(id => map.get(id) ?? null);
 }
 
-module.exports = { listEvents, getEventById, batchLoadEventsByIds, encodeCursor, decodeCursor };
+// ---------------------------------------------------------------------------
+// Map (Geospatial) API helpers
+// ---------------------------------------------------------------------------
+
+/**
+ * Great-circle distance between two WGS-84 coordinates in kilometres.
+ */
+function haversineKm(lat1, lon1, lat2, lon2) {
+  const R = 6371.0;
+  const toRad = deg => (deg * Math.PI) / 180;
+  const dLat = toRad(lat2 - lat1);
+  const dLon = toRad(lon2 - lon1);
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) ** 2;
+  const dist = 2 * R * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return Math.round(dist * 1000) / 1000;
+}
+
+/**
+ * Search events within radius_km of (latitude, longitude), sorted nearest-first.
+ */
+function searchEventsByRadius({ latitude, longitude, radius_km, status, category }) {
+  const filters = [];
+  const params = {};
+
+  if (status && ALLOWED_STATUSES.has(status)) {
+    filters.push('e.status = @status');
+    params.status = status;
+  }
+  if (category && ALLOWED_CATEGORIES.has(category)) {
+    filters.push('e.category = @category');
+    params.category = category;
+  }
+
+  const whereClause = filters.length ? `WHERE ${filters.join(' AND ')}` : '';
+  const rows = db.prepare(`
+    SELECT
+      e.*,
+      v.name      AS venue_name,
+      v.address   AS venue_address,
+      v.city      AS venue_city,
+      v.longitude AS venue_longitude,
+      v.latitude  AS venue_latitude,
+      o.name      AS organizer_name
+    FROM events e
+    JOIN venues     v ON v.id = e.venue_id
+    JOIN organizers o ON o.id = e.organizer_id
+    ${whereClause}
+  `).all(params);
+
+  const matched = [];
+  for (const row of rows) {
+    const dist = haversineKm(latitude, longitude, row.venue_latitude, row.venue_longitude);
+    if (dist <= radius_km) {
+      const formatted = formatEvent(row);
+      formatted.distance_km = dist;
+      formatted.location = {
+        type: 'Point',
+        coordinates: [row.venue_longitude, row.venue_latitude], // [longitude, latitude]
+      };
+      matched.push(formatted);
+    }
+  }
+
+  matched.sort((a, b) => a.distance_km - b.distance_km);
+  return matched;
+}
+
+/**
+ * Search events inside an axis-aligned bounding box [min_lon, min_lat, max_lon, max_lat].
+ */
+function searchEventsByBbox({ min_lat, min_lon, max_lat, max_lon, status, category }) {
+  const filters = [
+    'v.latitude BETWEEN @min_lat AND @max_lat',
+    'v.longitude BETWEEN @min_lon AND @max_lon',
+  ];
+  const params = { min_lat, min_lon, max_lat, max_lon };
+
+  if (status && ALLOWED_STATUSES.has(status)) {
+    filters.push('e.status = @status');
+    params.status = status;
+  }
+  if (category && ALLOWED_CATEGORIES.has(category)) {
+    filters.push('e.category = @category');
+    params.category = category;
+  }
+
+  const rows = db.prepare(`
+    SELECT
+      e.*,
+      v.name      AS venue_name,
+      v.address   AS venue_address,
+      v.city      AS venue_city,
+      v.longitude AS venue_longitude,
+      v.latitude  AS venue_latitude,
+      o.name      AS organizer_name
+    FROM events e
+    JOIN venues     v ON v.id = e.venue_id
+    JOIN organizers o ON o.id = e.organizer_id
+    WHERE ${filters.join(' AND ')}
+    ORDER BY e.starts_at ASC, e.id ASC
+  `).all(params);
+
+  return rows.map(row => {
+    const formatted = formatEvent(row);
+    formatted.distance_km = null;
+    formatted.location = {
+      type: 'Point',
+      coordinates: [row.venue_longitude, row.venue_latitude], // [longitude, latitude]
+    };
+    return formatted;
+  });
+}
+
+module.exports = {
+  listEvents,
+  getEventById,
+  batchLoadEventsByIds,
+  encodeCursor,
+  decodeCursor,
+  searchEventsByRadius,
+  searchEventsByBbox,
+  haversineKm,
+};
