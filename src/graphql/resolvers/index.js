@@ -4,6 +4,7 @@
 
 const { GraphQLDateTime } = require('graphql-scalars');
 const { Query, Event }    = require('./events');
+const { BookingQuery, Mutation } = require('./bookings');
 
 module.exports = {
   DateTime: GraphQLDateTime,
@@ -13,6 +14,7 @@ module.exports = {
     parseValue:   v => v,
     parseLiteral: ast => JSON.parse(ast.value),
   },
-  Query,
+  Query: { ...Query, ...BookingQuery },
   Event,
+  Mutation,
 };

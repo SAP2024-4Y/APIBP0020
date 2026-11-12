@@ -46,3 +46,13 @@ INSERT OR IGNORE INTO events VALUES
   ('evt-023','Karnatic Percussion Workshop','Learn mridangam fundamentals from Patri Satish Kumar.','UPCOMING','MUSIC',3999,'2027-01-08T05:00:00Z','2027-01-08T09:00:00Z',30,0,'venue-9','org-2'),
   ('evt-024','AR/VR Developer Bootcamp','Hands-on Unity XR for mobile – bring your headset.','UPCOMING','TECH',2999,'2027-01-18T04:30:00Z','2027-01-18T12:30:00Z',40,0,'venue-4','org-1'),
   ('evt-025','Cancelled: New Year Gala','Event postponed to Q1 2027.','CANCELLED','MUSIC',1499,'2026-12-31T17:30:00Z','2027-01-01T03:30:00Z',500,0,'venue-6','org-2');
+
+-- Sample bookings (seed data for Calendar API)
+-- demo user has bookings on two events so GET /api/v1/bookings returns results immediately
+INSERT OR IGNORE INTO bookings (id, event_id, user_id, status, created_at) VALUES
+  ('bkg-seed-001','evt-001','user-demo',  'CONFIRMED','2026-11-01T10:00:00Z'),
+  ('bkg-seed-002','evt-016','user-demo',  'CONFIRMED','2026-11-02T11:00:00Z'),
+  ('bkg-seed-003','evt-003','user-seed-1','CONFIRMED','2026-11-03T09:00:00Z'),
+  ('bkg-seed-004','evt-004','user-seed-1','CONFIRMED','2026-11-04T08:00:00Z'),
+  ('bkg-seed-005','evt-010','user-seed-2','CONFIRMED','2026-11-05T07:30:00Z'),
+  ('bkg-seed-006','evt-012','user-seed-2','CANCELLED','2026-11-06T12:00:00Z');
