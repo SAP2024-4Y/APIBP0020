@@ -9,6 +9,7 @@ Course: API Best Practices | Section: — | Instructor: —
 | 1 | Prajwal Suvarna   | 2024SL70009  | prpoojary     | prajwalpoojary256@gmail.com    |
 | 2 | Lathish Kumar     | 2024SL70023  | Lathish-Kumar2 | lathishk910@gmail.com         |
 | 3 | Mahadev Prasad M  | 2024SL70027  | Mady003 | mahadevprasadshetty2003@gmail.com    |
+| 4 | Sunil V.          | 2024SL70043  | Sunil0V2 | sunilvenkateshwaran@gmail.com.      |
 
 - Team ID: `APIB0020` (must equal the repository name and `team.json.team_id`)
 - Chosen Approach: `A` — REST-First + GraphQL Layer
